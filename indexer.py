@@ -10,14 +10,15 @@ URLids = {}
 
 def main():
     # List of all the files in the directory
-    files = os.listdir("sample_files") 
+    directory = "sample_files"
+    files = os.listdir(directory) 
     counter = 0
 
     for file in files : 
         # If file is not JSON do not read it
         if not file.endswith(".json"):
             continue
-        with open(f"small_dataset/{file}",) as the_file:
+        with open(f"{directory}/{file}",) as the_file:
             # Load the json file into data
             data = json.load(the_file) 
 
@@ -26,6 +27,20 @@ def main():
             URLids[url] = counter;
             counter += 1
 
+            # Read the content of file
+            soup = BeautifulSoup(data['content'], "html.parser")
+            content = soup.getText()
+
+            # Tokenize the content and add them to inverted index dictionary
+            for token, freq in tokenize(content).items():
+                if token in inverted_index:
+                    inverted_index[token].append( (URLids[url],freq) )
+                else:
+                    inverted_index[token] = [(URLids[url],freq)]
+
+    with open("inverse_index.txt", 'w') as f:
+        for key, value in inverted_index.items():
+            f.write(f"{key} : {value} \n")
 
 if __name__ == "__main__":
     main()
