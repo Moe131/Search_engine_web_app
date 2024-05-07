@@ -11,16 +11,16 @@ URLids = {}
 counter = 0
 
 
-def index(path,file):
+def index(file):
     """ Indexes a JSON file with a given path and stores the inverted index
       globaly as a mapping of a token to a list of tuples of URL ids and frequency"""
     global inverted_index, URLids, counter
     # If file is not JSON do not read it
     if not file.endswith(".json"):
         return
-    with open(f"{path}/{file}",) as the_file:
+    with open(file, 'r') as f:
         # Load the json file into data
-        data = json.load(the_file) 
+        data = json.load(f) 
 
         # Save the URL id
         url = data['url']
@@ -53,7 +53,7 @@ def main():
     directory = "sample_files"
     for (root, dirs, files) in os.walk(directory) :
         for f in files:
-            index(root,f)
+            index(f"{root}/{f}")
         print(f"All '{root}' directory files were indexed ")
     # Saves the inverted index dictionary in a file
     save_inverted_index("inverse_index.txt")
