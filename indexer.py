@@ -24,7 +24,8 @@ def index(file):
 
         # Save the URL id
         url = data['url']
-        URLids[url] = counter
+        URLids[counter] = url
+        url_id = counter
         counter += 1
 
         # Read the content of file
@@ -34,9 +35,9 @@ def index(file):
         # Tokenize the content and add them to inverted index dictionary
         for token, freq in tokenize(content).items():
             if token in inverted_index:
-                inverted_index[token].append( (URLids[url],freq) )
+                inverted_index[token].append( (url_id,freq) )
             else:
-                inverted_index[token] = [(URLids[url],freq)]
+                inverted_index[token] = [(url_id,freq)]
 
 
 def save_inverted_index(filepath):
