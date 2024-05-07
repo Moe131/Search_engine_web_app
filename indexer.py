@@ -42,6 +42,8 @@ def index(path,file):
 def save_inverted_index(filepath):
     """ Saves the inverted index dictionary in a txt file"""
     with open(filepath, 'w') as f:
+        f.write(f"Number of unique tokens : {len(inverted_index)} \n"+ "-" * 50 + "\n")
+        f.write(f"Number of documents  : {len(URLids)} \n"+ "-" * 50 + "\n")
         for key, value in inverted_index.items():
             f.write(f"{key} : {value} \n")
 
