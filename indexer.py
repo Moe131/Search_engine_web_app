@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 from tokenizer import *
+from nltk.stem import PorterStemmer
 
 # Dictionary of tokens and their postings
 inverted_index = {}
@@ -9,6 +10,8 @@ inverted_index = {}
 URLids = {}
 # Counts from zero for URL ids
 counter = 0
+# Initialize Porter Stemmer
+stemmer = PorterStemmer()
 
 
 def index(file):
