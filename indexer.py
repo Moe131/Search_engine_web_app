@@ -29,7 +29,7 @@ def index(file):
         counter += 1
 
         # Read the content of file
-        soup = BeautifulSoup(data['content'], "html.parser")
+        soup = BeautifulSoup(data['content'], "lxml") 
         content = soup.getText()
 
         # Tokenize the content and add them to inverted index dictionary
@@ -50,14 +50,16 @@ def save_inverted_index(filepath):
 
 
 def main():
+    # Repalce with the file path of DEV directory in your system
+    directory = "sample"
     # Traverse through directories to find all files
-    directory = "sample_files"
     for (root, dirs, files) in os.walk(directory) :
         for f in files:
             index(f"{root}/{f}")
         print(f"All '{root}' directory files were indexed ")
     # Saves the inverted index dictionary in a file
     save_inverted_index("inverse_index.txt")
+    print(f"--- All files were indexed. ---")
 
 
 if __name__ == "__main__":
