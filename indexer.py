@@ -1,7 +1,9 @@
-from bs4 import BeautifulSoup 
 import json
 import os
 from tokenizer import *
+from bs4 import BeautifulSoup 
+from porter2stemmer import Porter2Stemmer
+
 
 # Dictionary of tokens and their postings
 inverted_index = {}
@@ -33,11 +35,13 @@ def index(file):
         content = soup.getText()
 
         # Tokenize the content and add them to inverted index dictionary
+        stemmer = Porter2Stemmer()
         for token, freq in tokenize(content).items():
-            if token in inverted_index:
-                inverted_index[token].append( (url_id,freq) )
+            stem = stemmer.stem(token)
+            if stem in inverted_index:
+                inverted_index[stem].append( (url_id,freq) )
             else:
-                inverted_index[token] = [(url_id,freq)]
+                inverted_index[stem] = [(url_id,freq)]
 
 
 def save_inverted_index(filepath):
@@ -58,7 +62,7 @@ def main():
             index(f"{root}/{f}")
         print(f"All '{root}' directory files were indexed ")
     # Saves the inverted index dictionary in a file
-    save_inverted_index("inverse_index.txt")
+    save_inverted_index("inverted_index.txt")
     print(f"--- All files were indexed. ---")
 
 
