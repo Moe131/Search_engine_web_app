@@ -1,5 +1,4 @@
-import json
-import os
+import json, os, pickle
 from tokenizer import *
 from bs4 import BeautifulSoup 
 from porter2stemmer import Porter2Stemmer
@@ -44,13 +43,33 @@ def index(file):
                 inverted_index[stem] = [(url_id,freq)]
 
 
-def save_inverted_index(filepath):
-    """ Saves the inverted index dictionary in a txt file"""
+def create_report(filepath):
+    """ Creates a report of the inverted index in a text file"""
     with open(filepath, 'w') as f:
         f.write(f"Number of unique tokens : {len(inverted_index)} \n"+ "-" * 50 + "\n")
         f.write(f"Number of documents  : {len(URLids)} \n"+ "-" * 50 + "\n")
-        for key, value in inverted_index.items():
-            f.write(f"{key} : {value} \n")
+        # Gets file size of the inverted index
+        data_file_size = os.path.getsize("data.pickle")
+        f.write(f"Inverted Index file size  : {data_file_size/1024} KB\n"+ "-" * 50 + "\n")
+
+
+def save_inverted_index():
+    """ Saves the inverted index dictionaries in a pickle file """
+    with open("data.pickle", "wb") as f:
+        pickle.dump((inverted_index, URLids), f)
+
+
+def load_inverted_index(): 
+     """ Loads the inverted index dictionaries from the pickle file and returns them"""
+     try:
+        with open("data.pickle" , "rb") as f:
+            inverted_index, URLids = pickle.load(f)
+     except FileNotFoundError:
+        # If the file doesn't exist
+        inverted_index = {}
+        URLids = {}
+     return inverted_index, URLids
+
 
 
 def main():
@@ -61,8 +80,8 @@ def main():
         for f in files:
             index(f"{root}/{f}")
         print(f"All '{root}' directory files were indexed ")
-    # Saves the inverted index dictionary in a file
-    save_inverted_index("inverted_index.txt")
+    save_inverted_index()
+    create_report("report.txt")
     print(f"--- All files were indexed. ---")
 
 
