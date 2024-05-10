@@ -51,7 +51,7 @@ def save_inverted_index(filepath):
 
 def main():
     # Repalce with the file path of DEV directory in your system
-    directory = "/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3/Part1/DEV"
+    directory = "sample"
     # Traverse through directories to find all files
     for (root, dirs, files) in os.walk(directory) :
         for f in files:
