@@ -12,26 +12,28 @@ def process(query):
       returns a list of URLs in order of relevance to the query"""
     # Now just handles a single word query
     result = list()
+    postings = list()
     stemmer = Porter2Stemmer()
+    # For each token in query find its list of postings
     for word in query.split():
         stem = stemmer.stem(word.lower())
         if stem in inverted_index:
-            for docID,freq in inverted_index[stem]:
-                result.append(documents[docID])
+            for posting in inverted_index[stem]:
+                result.append(posting)
     return result
 
 
-def display(urls):
+def display(postings):
     """ Gets a list of result URLs as parameter and displays them in order """
     print("-" * 50)
-    if len(urls) == 0:
+    if len(postings) == 0:
         print("No results found for your query")
         return
     counter = 1
-    for url in urls:
+    for p in postings:
         if (counter > 10): # Show the first 10 search results only
             return
-        print(f"{counter}. {url}\n")
+        print(f"{counter}. {documents[p.docID]}\n")
         counter += 1
 
 

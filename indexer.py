@@ -1,6 +1,7 @@
 import json, os, pickle
 from tokenizer import *
 from bs4 import BeautifulSoup 
+from posting import Posting
 from porter2stemmer import Porter2Stemmer
 
 
@@ -38,9 +39,9 @@ def index(file):
         for token, freq in tokenize(content).items():
             stem = stemmer.stem(token)
             if stem in inverted_index:
-                inverted_index[stem].append( (url_id,freq) )
+                inverted_index[stem].append( Posting(url_id,freq) )
             else:
-                inverted_index[stem] = [(url_id,freq)]
+                inverted_index[stem] = [ Posting(url_id,freq)]
 
 
 def create_report(filepath):
