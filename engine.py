@@ -14,7 +14,7 @@ def process(query):
     result = list()
     stemmer = Porter2Stemmer()
     for word in query.split():
-        stem = stemmer.stem(word)
+        stem = stemmer.stem(word.lower())
         if stem in inverted_index:
             for docID,freq in inverted_index[stem]:
                 result.append(documents[docID])
@@ -29,6 +29,8 @@ def display(urls):
         return
     counter = 1
     for url in urls:
+        if (counter > 10): # Show the first 10 search results only
+            return
         print(f"{counter}. {url}\n")
         counter += 1
 
