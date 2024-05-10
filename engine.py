@@ -1,5 +1,6 @@
 from indexer import load_inverted_index
 from porter2stemmer import Porter2Stemmer
+from posting import Posting
 
 
 # Dictionary of tokens and their postings
@@ -11,15 +12,42 @@ def process(query):
     """ Processes the query by using the inverted index and
       returns a list of URLs in order of relevance to the query"""
     # Now just handles a single word query
-    result = list()
-    postings = list()
+    search_result = list()
     stemmer = Porter2Stemmer()
-    # For each token in query find its list of postings
-    for word in query.split():
-        stem = stemmer.stem(word.lower())
-        if stem in inverted_index:
-            for posting in inverted_index[stem]:
-                result.append(posting)
+    query_stems = [stemmer.stem(q.lower()) for q in query.split()]
+
+    # If searched is one word long
+    if len(query_stems) == 1:
+        qstem = query_stems[0]
+        if qstem in inverted_index:
+                search_result = inverted_index[qstem]
+    # If searched query is two words long
+    else:
+        qstem1 = query_stems[0]
+        qstem2 = query_stems[1]
+        if qstem1 in inverted_index and qstem2 in inverted_index:
+                search_result = find_intersection(inverted_index[qstem1], inverted_index[qstem2])
+
+    return search_result
+
+
+def find_intersection(posting1 ,posting2):
+    """ Finds the intersection of two lists postings by joining them
+      and returning the list of postings that are present in both """
+    result = list()
+    iterator1, iterator2 = iter(posting1), iter(posting2)
+    try:
+        p1, p2 = next(iterator1), next(iterator2)
+        while(True):
+            if p1.docID == p2.docID :
+                result.append( Posting(p1.docID, p1.tfidf+ p2.tfidf) )
+                p1, p2 = next(iterator1), next(iterator2)
+            elif p1.docID < p2.docID:
+                p1 = next(iterator1)
+            else:
+                p2 = next(iterator2)        
+    except StopIteration: #In case we reach to end of one of the postings
+        pass
     return result
 
 
