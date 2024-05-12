@@ -14,6 +14,9 @@ def index():
     global query, search_results, has_searched
     if request.method == "POST":
         query = request.form['query']
+        # If query is space or empty do not show results
+        if query.isspace() or query == "":
+            return redirect('/')
         postings = engine.process(query)
         search_results = engine.get_top_five(postings)
         has_searched = True
