@@ -27,8 +27,13 @@ form {
     text-align: center;
 }
 
+.result-box{
+    width: 90%; 
+    margin: 10px auto !important; 
+}
+
 input[type="text"] {
-    width: 70%;
+    width: 75%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;

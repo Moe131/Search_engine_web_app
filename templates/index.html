@@ -14,21 +14,20 @@
             <input type="text" id="query" name="query">
             <input type="submit", value="Search">
         </form>
-        <div class="result">
+        {% if has_searched %}
+        <div class="result-box">
+
             {% if urls|length > 0%}
+                <h4 class="result-text"> Here are your search results : </h4>
             {%for url in urls %}
-                <h4><a class="result" href="{{url}}"> {{url}}</a></h4>
+                <h4><a class="result-text" href="{{url}}"> {{url}}</a></h4>
             {%endfor %}
 
             {%else%}
-                {% if has_searched %}
                  <h4 class="error-message"> No Search Results Found </h4>
-                {% else %}
-                {%endif%}
             {%endif%}
         </div>
-
-
+        {%endif%}
     </div>
 </body>
 </html>

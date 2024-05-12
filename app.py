@@ -16,7 +16,6 @@ def index():
         query = request.form['query']
         postings = engine.process(query)
         search_results = engine.get_top_five(postings)
-        print(search_results)
         has_searched = True
         return redirect('/')
     else:
