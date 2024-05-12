@@ -63,7 +63,7 @@ def display(postings):
         print("No results found for your query")
         return
     counter = 1
-    for p in postings:
+    for p in sorted(postings, key=lambda posting:posting.tfidf, reverse = True): # Shows search results sorted by highest tfidf 
         if (counter > 10): # Show the first 10 search results only
             return
         print(f"{counter}. {documents[p.docID]}\n")
@@ -73,7 +73,7 @@ def display(postings):
 def run():
     """ The search engine starts running and asks the user to enter queries"""
     global inverted_index , documents
-    inverted_index , documents = load_inverted_index()
+    inverted_index , documents = load_inverted_index("data.pickle") # replace file path with ../data(DEV).pickle for DEV indexed file
     while (True):
         query = input("Enter your search query:     ")
         if query.isspace() or query == "":

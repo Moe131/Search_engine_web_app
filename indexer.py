@@ -60,10 +60,10 @@ def save_inverted_index():
         pickle.dump((inverted_index, documents), f)
 
 
-def load_inverted_index(): 
+def load_inverted_index(filepath): 
      """ Loads the inverted index dictionaries from the pickle file and returns them"""
      try:
-        with open("data.pickle" , "rb") as f:
+        with open(filepath , "rb") as f:  
             inverted_index, documents = pickle.load(f)
      except FileNotFoundError:
         # If the file doesn't exist
