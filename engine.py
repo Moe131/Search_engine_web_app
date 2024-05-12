@@ -11,7 +11,7 @@ documents = {}
 def process(query):
     """ Processes the query by using the inverted index and
       returns a list of URLs in order of relevance to the query"""
-    # Now just handles a single word query
+    #Stemming the search query words
     search_result = list()
     stemmer = Porter2Stemmer()
     query_stems = [stemmer.stem(q.lower()) for q in query.split()]
@@ -21,13 +21,18 @@ def process(query):
         qstem = query_stems[0]
         if qstem in inverted_index:
                 search_result = inverted_index[qstem]
-    # If searched query is two words long
-    else:
+    # If searched query is two words or more 
+    elif len(query_stems) >= 2:
         qstem1 = query_stems[0]
         qstem2 = query_stems[1]
         if qstem1 in inverted_index and qstem2 in inverted_index:
                 search_result = find_intersection(inverted_index[qstem1], inverted_index[qstem2])
-
+        for i in range(2, len(query_stems)):
+                if query_stems[i] in inverted_index:
+                    search_result = find_intersection(inverted_index[query_stems[i]], search_result)
+                else: # If one of the query words is not in the inverted index return empty search result ( BOOLEAN Search model)
+                     search_result = list()
+                     break
     return search_result
 
 
