@@ -22,13 +22,13 @@ def index():
         postings = engine.process(query)
         search_results = engine.get_top_five(postings)
         has_searched = True
-        return render_template('index.html', urls = search_results, has_searched=has_searched )
+        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query )
     # If the request method is GET (initial page load) Do not show search result
     elif request.method == "GET":
         has_searched = False
-        return render_template('index.html', urls = search_results, has_searched=has_searched )
+        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query  )
     else:
-        return render_template('index.html', urls = search_results, has_searched=has_searched )
+        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query  )
 
 
 if __name__ == "__main__":
