@@ -18,8 +18,9 @@
         {% if has_searched %}
         <div class="result-box">
 
-            {% if urls|length > 0%}
+            {% if urls|length > 0%} 
                 <h4 class="result-text"> Here are your search results : </h4>
+                <h5 class="result-text"> Query Time : {{ query_time }} ms </h5>
             {%for url in urls %}
                 <h4><a class="result-text" href="{{url}}"> {{url}}</a></h4>
             {%endfor %}
