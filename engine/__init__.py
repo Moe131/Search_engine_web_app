@@ -1,30 +1,42 @@
 from engine.posting import Posting
 from engine.indexer import Indexer
 from porter2stemmer import Porter2Stemmer
-import pickle, sys
+from types import SimpleNamespace
+import json, sys, pickle
+
+inverted_index_path = "data.txt" # replace file path with ../data(DEV).pickle for DEV indexed file
+index_of_index_path = "indexOfIndex.json"
+document_ids_path = "documentIDs.json"
 
 class Engine(object):
     """Represents the engine of the search engine"""
     def __init__(self):
         self.inverted_index = {}  # Dictionary of tokens and their postings
         self.documents = {}  # Dictionary of URL and their IDs
-        self.indexer = Indexer()
         self.load_data()
 
 
     def load_data(self):
         """Loads inverted index and documents from pickle file into the memory"""
-        filepath = "data.pickle"  # replace file path with ../data(DEV).pickle for DEV indexed file
-
         # This is used for temporarily adjusting path for loading the pickle file
         sys.path.append(r'engine') 
         try:
-            with open(filepath, "rb") as f:
-                self.inverted_index, self.documents = pickle.load(f)
+            with open(inverted_index_path, "r") as f:
+                    for line in f:
+                        parts = line.split(' ', 1)
+                        token = parts[0]
+                        postings = [Posting.from_json(p) for p in json.loads(parts[1])]
+                        self.inverted_index[token] = postings
+
+            with open(document_ids_path, "r") as f:
+                for key, value in json.load(f).items():
+                    self.documents[int(key)] = value
+
         except FileNotFoundError:
             # If the file doesn't exist
             self.inverted_index = {}
             self.documents = {}
+
 
 
     def process(self, query):

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
-from engine import Engine
-from engine import Posting
+from engine import Engine, Indexer
 import time
+import sys
 
 app = Flask(__name__)
 engine = Engine()
@@ -42,4 +42,9 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run()
+    # run the indexer not the app with command : 'python3 app.py index'
+    if len(sys.argv) > 1 and sys.argv[1] == "index":
+        indexer = Indexer("/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV")       # Replace with the file path of DEV directory in your system
+        indexer.run()
+    else:
+        app.run()
