@@ -1,6 +1,6 @@
-Number of unique tokens : 2226 
+Number of unique tokens : 1103039 
 --------------------------------------------------
-Number of documents  : 12 
+Number of documents  : 55393 
 --------------------------------------------------
-Inverted Index file size  : 204.0390625 KB
+Inverted Index file size  : 986555.236328125 KB
 --------------------------------------------------
