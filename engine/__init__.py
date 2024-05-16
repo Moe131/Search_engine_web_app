@@ -11,32 +11,55 @@ document_ids_path = "documentIDs.json"
 class Engine(object):
     """Represents the engine of the search engine"""
     def __init__(self):
-        self.inverted_index = {}  # Dictionary of tokens and their postings
+        self.inverted_index_file = None  # Dictionary of tokens and their postings
         self.documents = {}  # Dictionary of URL and their IDs
-        self.load_data()
+        self.index_of_index = {}
+        self.load_files()
+        self.open_inverted_index()
 
 
-    def load_data(self):
+    def open_inverted_index(self):
         """Loads inverted index and documents from pickle file into the memory"""
         # This is used for temporarily adjusting path for loading the pickle file
         sys.path.append(r'engine') 
         try:
-            with open(inverted_index_path, "r") as f:
-                    for line in f:
-                        parts = line.split(' ', 1)
-                        token = parts[0]
-                        postings = [Posting.from_json(p) for p in json.loads(parts[1])]
-                        self.inverted_index[token] = postings
+             self.inverted_index_file = open(inverted_index_path, "r")
+        except :
+            # If the file doesn't exist
+            print("Inverted Index file could not be opened")
+            self.inverted_index_file = None
 
-            with open(document_ids_path, "r") as f:
-                for key, value in json.load(f).items():
+    def __del__(self):
+        """ Engine destructor to make sure to closes the inverted index file"""
+        if self.inverted_index_file is not None:
+            self.inverted_index_file.close()
+
+
+    def load_files(self):
+        """Loads index of index and documents from pickle file into the memory"""
+        # This is used for temporarily adjusting path for loading the pickle file
+        sys.path.append(r'engine') 
+        try:
+            with open(index_of_index_path, "r") as f1:
+                for key, value in json.load(f1).items():
+                    self.index_of_index[key] = int(value)
+            with open(document_ids_path, "r") as f2:
+                for key, value in json.load(f2).items():
                     self.documents[int(key)] = value
-
         except FileNotFoundError:
             # If the file doesn't exist
-            self.inverted_index = {}
             self.documents = {}
+            self.index_of_index = {}
 
+
+    def find_postings(self, token ,lineNumber):
+        """ Finds the postings of a token by loading the inverted index """
+        self.inverted_index_file.seek(lineNumber)
+        parts = self.inverted_index_file.readline().split(' ',1)
+        if token == parts[0]:
+            return [Posting.from_json(p) for p in json.loads(parts[1])]
+        else:
+            return list()
 
 
     def process(self, query):
@@ -49,20 +72,24 @@ class Engine(object):
         # If searched is one word long
         if len(query_stems) == 1:
             qstem = query_stems[0]
-            if qstem in self.inverted_index:
-                search_result = self.inverted_index[qstem]
+            if qstem in self.index_of_index:
+                search_result = self.find_postings(qstem, self.index_of_index[qstem])
         # If searched query is two words or more
         elif len(query_stems) >= 2:
             qstem1 = query_stems[0]
             qstem2 = query_stems[1]
-            if qstem1 in self.inverted_index and qstem2 in self.inverted_index:
-                search_result = self.find_intersection(self.inverted_index[qstem1], self.inverted_index[qstem2])
+            if qstem1 in self.index_of_index and qstem2 in self.index_of_index:
+                postings1 = self.find_postings(qstem1, self.index_of_index[qstem1])
+                postings2 = self.find_postings(qstem2, self.index_of_index[qstem2])
+                search_result = self.find_intersection(postings1, postings2)
             for i in range(2, len(query_stems)):
-                if query_stems[i] in self.inverted_index:
-                    search_result = self.find_intersection(self.inverted_index[query_stems[i]], search_result)
+                if query_stems[i] in self.index_of_index:
+                    postings_i = self.find_postings(query_stems[i], self.index_of_index[query_stems[i]])
+                    search_result = self.find_intersection(postings_i, search_result)
                 else:  # If one of the query words is not in the inverted index return empty search result (BOOLEAN Search model)
                     search_result = list()
                     break
+
         return search_result
 
     def find_intersection(self, posting1, posting2):

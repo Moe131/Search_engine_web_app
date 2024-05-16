@@ -46,6 +46,7 @@ class Indexer(object):
                 else:
                     self.inverted_index[stem] = [Posting(url_id, freq)]
 
+
     def create_report(self, path):
         """Creates a report of the inverted index in a text file"""
         with open(path, 'w') as f:
@@ -70,15 +71,17 @@ class Indexer(object):
 
     def make_index_of_index(self,path):
         """ Create the index of index and stores it on disk"""
-        line_counter = 0
-        mapping = {}
+        byte_counter = 0
+        index_of_index = {}
         with open(inverted_index_path, "r") as f1:
-            with open(path, "w") as f2:
-                for line in f1:
+            for line in f1:
                     parts = line.split(' ', 1)
-                    token = parts[0]
-                    json.dump({token : line_counter},f2)
-                    line_counter += 1
+                    index_of_index[parts[0]] = byte_counter
+                    byte_counter += len(line.encode('utf-8'))
+        with open(path, "w") as f2:
+            json.dump(index_of_index, f2)
+
+
 
 
     def run(self):
