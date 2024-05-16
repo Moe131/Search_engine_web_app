@@ -1,8 +1,7 @@
 from engine.posting import Posting
 from engine.indexer import Indexer
 from porter2stemmer import Porter2Stemmer
-from types import SimpleNamespace
-import json, sys, pickle
+import json, sys
 
 inverted_index_path = "data.txt" # replace file path with ../data(DEV).pickle for DEV indexed file
 index_of_index_path = "indexOfIndex.json"
@@ -76,39 +75,52 @@ class Engine(object):
                 search_result = self.find_postings(qstem, self.index_of_index[qstem])
         # If searched query is two words or more
         elif len(query_stems) >= 2:
-            qstem1 = query_stems[0]
-            qstem2 = query_stems[1]
-            if qstem1 in self.index_of_index and qstem2 in self.index_of_index:
-                postings1 = self.find_postings(qstem1, self.index_of_index[qstem1])
-                postings2 = self.find_postings(qstem2, self.index_of_index[qstem2])
-                search_result = self.find_intersection(postings1, postings2)
-            for i in range(2, len(query_stems)):
-                if query_stems[i] in self.index_of_index:
-                    postings_i = self.find_postings(query_stems[i], self.index_of_index[query_stems[i]])
-                    search_result = self.find_intersection(postings_i, search_result)
-                else:  # If one of the query words is not in the inverted index return empty search result (BOOLEAN Search model)
-                    search_result = list()
-                    break
-
+            postings = list()
+            for q in query_stems:
+                if q not in self.index_of_index:
+                    return list()
+                else:
+                    postings.append(self.find_postings(q, self.index_of_index[q]))
+            search_result = self.find_intersection(postings)
         return search_result
 
-    def find_intersection(self, posting1, posting2):
-        """Finds the intersection of two lists postings by joining them and returning the list of postings that are present in both"""
-        result = list()
-        iterator1, iterator2 = iter(posting1), iter(posting2)
-        try:
-            p1, p2 = next(iterator1), next(iterator2)
-            while True:
-                if p1.docID == p2.docID:
-                    result.append(Posting(p1.docID, p1.tfidf + p2.tfidf))
-                    p1, p2 = next(iterator1), next(iterator2)
-                elif p1.docID < p2.docID:
-                    p1 = next(iterator1)
-                else:
-                    p2 = next(iterator2)
-        except StopIteration:  # In case we reach to end of one of the postings
-            pass
+    def find_intersection(self, postings_list):
+        """Finds the intersection of a list of postings by joining them and returning the list of postings that are present in all"""
+        # Find and use the shortest list for intersection
+        shortest_list = min(postings_list, key=len)
+        other_lists = [p for p in postings_list if p is not shortest_list]
+
+        result = []
+        iterators = [iter(pl) for pl in other_lists]
+    
+        for posting in shortest_list:
+            current_docID = posting.docID
+            tfidf_sum = posting.tfidf  # Initialize with the tfidf from the shortest list
+
+        # Check if the current document ID exists in all other posting lists
+            in_all = True
+            for i, iterator in enumerate(iterators):
+                while True:
+                    try:
+                        other_posting = next(iterator)
+                        if other_posting.docID == current_docID:
+                            tfidf_sum += other_posting.tfidf
+                            break
+                        elif other_posting.docID > current_docID:
+                            in_all = False
+                            break
+                    except StopIteration:
+                        in_all = False
+                        break
+            
+                if not in_all:
+                    break
+        
+            if in_all:
+                result.append(Posting(posting.docID, tfidf_sum))
+        
         return result
+
 
     def display(self, postings):
         """Gets a list of result URLs as parameter and displays them in order"""
