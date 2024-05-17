@@ -1,4 +1,4 @@
-import json, os, pickle
+import json, os
 from engine.tokenizer import tokenize
 from engine.posting import Posting
 from porter2stemmer import Porter2Stemmer
@@ -60,8 +60,9 @@ class Indexer(object):
         """Saves the inverted index in a JSON file"""
         with open(path, "w") as f:
             for token, postings in self.inverted_index.items():
-                f.write(token + " " + json.dumps([p.to_json() for p in postings]) + '\n' )
-
+                f.write(token + " " )
+                f.write(json.dumps([p.update_tfidf(len(postings), len(self.inverted_index)).to_json() for p in postings]) )
+                f.write('\n')
 
     def save_documentIDs(self,path):
         """Saves the inverted index in a JSON file"""
@@ -80,8 +81,6 @@ class Indexer(object):
                     byte_counter += len(line.encode('utf-8'))
         with open(path, "w") as f2:
             json.dump(index_of_index, f2)
-
-
 
 
     def run(self):

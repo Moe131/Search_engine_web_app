@@ -3,14 +3,17 @@ from engine import Engine, Indexer
 import time
 import sys
 
+# This is the path of the directory containing JSON files to index --> replace
+JSON_FILES_PATH = "/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV"
+
+
 app = Flask(__name__)
 engine = Engine()
-# Search query
-query = ""
+query = ""       # Search query
 search_results = []
 has_searched = False
-# time for each query
-query_time = 0
+query_time = 0 # time for each query
+
 
 
 @app.route("/", methods=["POST", "GET"])
@@ -44,7 +47,7 @@ def index():
 if __name__ == "__main__":
     # run the indexer not the app with command : 'python3 app.py index'
     if len(sys.argv) > 1 and sys.argv[1] == "index":
-        indexer = Indexer("/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV")       # Replace with the file path of DEV directory in your system
+        indexer = Indexer(JSON_FILES_PATH)
         indexer.run()
     else:
         app.run()
