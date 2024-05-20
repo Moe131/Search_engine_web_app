@@ -6,6 +6,8 @@ import json, sys
 inverted_index_path = "data.txt" # replace file path with ../data(DEV).pickle for DEV indexed file
 index_of_index_path = "indexOfIndex.json"
 document_ids_path = "documentIDs.json"
+query_freq = {} # Keeps track of how many times a query token has been searched
+cache = {} 
 
 class Engine(object):
     """Represents the engine of the search engine"""
@@ -27,6 +29,7 @@ class Engine(object):
             # If the file doesn't exist
             print("Inverted Index file could not be opened")
             self.inverted_index_file = None
+
 
     def __del__(self):
         """ Engine destructor to make sure to closes the inverted index file"""
@@ -53,10 +56,19 @@ class Engine(object):
 
     def find_postings(self, token ,lineNumber):
         """ Finds the postings of a token by loading the inverted index """
+        # first check if token and its postings are in cache
+        if token in cache:
+            return cache[token]
+        
+        # if token is not in cache look into the inverted index file
         self.inverted_index_file.seek(lineNumber)
         parts = self.inverted_index_file.readline().split(' ',1)
         if token == parts[0]:
-            return [Posting.from_json(p) for p in json.loads(parts[1])]
+            postings = [Posting.from_json(p) for p in json.loads(parts[1])]
+            # If token has been searched 5 times or more, add its listings to cache
+            if query_freq[token] >= 5:
+                cache[token] = postings 
+            return postings
         else:
             return list()
 
@@ -66,17 +78,24 @@ class Engine(object):
         # Stemming the search query words
         search_result = list()
         stemmer = Porter2Stemmer()
-        query_stems = [stemmer.stem(q.lower()) for q in query.split()]
+        query_words = [stemmer.stem(q.lower()) for q in query.split()]
+
+        # Keep track of query words' frequencies
+        for token in query_words:
+            if token in query_freq:
+                query_freq[token] += 1
+            else:
+                query_freq[token] = 1
 
         # If searched is one word long
-        if len(query_stems) == 1:
-            qstem = query_stems[0]
-            if qstem in self.index_of_index:
-                search_result = self.find_postings(qstem, self.index_of_index[qstem])
+        if len(query_words) == 1:
+            word = query_words[0]
+            if word in self.index_of_index:
+                search_result = self.find_postings(word, self.index_of_index[word])
         # If searched query is two words or more
-        elif len(query_stems) >= 2:
+        elif len(query_words) >= 2:
             postings = list()
-            for q in query_stems:
+            for q in query_words:
                 if q not in self.index_of_index:
                     return list()
                 else:
