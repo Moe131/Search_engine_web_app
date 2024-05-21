@@ -1,4 +1,5 @@
 from engine.posting import Posting
+from engine.tokenizer import remove_stop_words
 from engine.indexer import Indexer
 from porter2stemmer import Porter2Stemmer
 import json, sys
@@ -78,6 +79,7 @@ class Engine(object):
         # Stemming the search query words
         search_result = list()
         stemmer = Porter2Stemmer()
+        query = remove_stop_words(query)
         query_words = [stemmer.stem(q.lower()) for q in query.split()]
 
         # Keep track of query words' frequencies
@@ -92,6 +94,7 @@ class Engine(object):
             word = query_words[0]
             if word in self.index_of_index:
                 search_result = self.find_postings(word, self.index_of_index[word])
+
         # If searched query is two words or more
         elif len(query_words) >= 2:
             postings = list()
@@ -141,25 +144,12 @@ class Engine(object):
         return result
 
 
-    def display(self, postings):
-        """Gets a list of result URLs as parameter and displays them in order"""
-        print("-" * 50)
-        if len(postings) == 0:
-            print("No results found for your query")
-            return
-        counter = 1
-        for p in sorted(postings, key=lambda posting: posting.tfidf, reverse=True):  # Shows search results sorted by highest tfidf
-            if counter > 10:  # Show the first 10 search results only
-                return
-            print(f"{counter}. {self.documents[p.docID]}\n")
-            counter += 1
-
     def get_top_five(self, postings):
         """Gets a list of result URLs as parameter and displays the top five them in order"""
         result = []
         counter = 1
         for p in sorted(postings, key=lambda posting: posting.tfidf, reverse=True):  # Shows search results sorted by highest tfidf
-            if counter > 10:  # Show the first 10 search results only
+            if counter > 5:  # Show the first 10 search results only
                 break
             result.append(self.documents[p.docID])
             counter += 1
