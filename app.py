@@ -5,6 +5,7 @@ import sys
 
 # This is the path of the directory containing JSON files to index --> replace
 JSON_FILES_PATH = "/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV"
+#/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV
 
 
 app = Flask(__name__)

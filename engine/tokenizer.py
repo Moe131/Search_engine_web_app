@@ -1,3 +1,7 @@
+from porter2stemmer import Porter2Stemmer
+
+stemmer = Porter2Stemmer()
+
 # Time complexity of this method is constant O(1) because it only
 # iterates through a constant sized string
 def isAlphaNum(ch:str) -> bool:
@@ -21,7 +25,7 @@ def tokenize(text: str) -> dict:
 		else:
 			if token != "":
 				if  len(token) > 1 :
-					word = token.lower()
+					word = stemmer.stem(token.lower())
 					if word in tokens.keys():
 						tokens[word] += 1
 					else:

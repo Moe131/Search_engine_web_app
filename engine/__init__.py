@@ -3,9 +3,9 @@ from engine.indexer import Indexer
 from porter2stemmer import Porter2Stemmer
 import json, sys
 
-inverted_index_path = "data.txt" # replace file path with ../data(DEV).pickle for DEV indexed file
-index_of_index_path = "indexOfIndex.json"
-document_ids_path = "documentIDs.json"
+inverted_index_path = "data/inverted_index.txt"
+index_of_index_path = "data/indexOfIndex.json"
+document_ids_path = "data/documentIDs.json"
 query_freq = {} # Keeps track of how many times a query token has been searched
 cache = {} 
 
@@ -159,7 +159,7 @@ class Engine(object):
         result = []
         counter = 1
         for p in sorted(postings, key=lambda posting: posting.tfidf, reverse=True):  # Shows search results sorted by highest tfidf
-            if counter > 5:  # Show the first 10 search results only
+            if counter > 10:  # Show the first 10 search results only
                 break
             result.append(self.documents[p.docID])
             counter += 1
