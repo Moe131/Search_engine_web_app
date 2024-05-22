@@ -29,7 +29,7 @@ def index():
             return redirect('/')
         start = time.time()
         postings = engine.process(query)
-        search_results = engine.get_top_five(postings)
+        search_results = engine.get_top_results(postings)
         has_searched = True
         # Calculate the query time
         end = time.time()

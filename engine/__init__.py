@@ -88,31 +88,42 @@ class Engine(object):
                 query_freq[token] += 1
             else:
                 query_freq[token] = 1
-
-        # If searched is one word long
-        if len(query_words) == 1:
-            word = query_words[0]
-            if word in self.index_of_index:
-                search_result = self.find_postings(word, self.index_of_index[word])
-
-        # If searched query is two words or more
-        elif len(query_words) >= 2:
-            top_postings = list()
-            query_idf = {}
-            query_posting = {}
-            for q in query_words:
-                if q in self.index_of_index:
-                    q_postings = self.find_postings(q, self.index_of_index[q])
-                    # Saving the idf of this query word
-                    query_idf[q] = idf = math.log10(len(self.documents)/len(q_postings))
-                    query_posting[q] = q_postings
-
-            # Find top 3 words of the query based on idf and find intersection of them 
-            for q, idf in sorted(query_idf.items(), key=lambda x:x[1], reverse=True)[:3]:
-                top_postings.append(query_posting[q])
-            search_result = self.find_intersection(top_postings)
-
+        
+        # Sorts the search results by their cosine similarity score to query
+        search_result = sorted(self.calculate_cosine_similarity(query_words).items(), key=lambda x:x[1], reverse=True)
+        search_result = [res[0] for res in search_result]
         return search_result
+
+
+    def calculate_cosine_similarity(self, query):
+        """ Calculates cosine similairty score for a query and all the documents containing the query words 
+        and returns a dictionary of document IDs and their similarity scores"""
+        scores = {}
+        length = {}
+        query_idfs = []
+        for word in query:
+            if word in self.index_of_index:
+                    word_postings = self.find_postings(word, self.index_of_index[word])
+                    # Saving the idf of this query word
+                    idf = math.log10(len(self.documents)/len(word_postings))
+                    query_idfs.append(idf)
+                    for p in word_postings:
+                        weight = idf * p.tfidf
+                        if p.docID in scores:
+                            scores[p.docID] += weight
+                        else:
+                            scores[p.docID] = weight
+                        if p.docID in length:
+                            length[p.docID] += p.tfidf*p.tfidf 
+                        else:
+                            length[p.docID] = p.tfidf*p.tfidf
+    
+        query_length = math.sqrt(sum(idf * idf for idf in query_idfs))
+
+        for doc,score in scores.items():
+            scores[doc] = scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
+        return scores
+
 
 
     def find_intersection(self, postings_list):
@@ -153,17 +164,14 @@ class Engine(object):
             return result
 
 
-    def get_top_five(self, postings):
-        """Gets a list of result URLs as parameter and displays the top five them in order"""
-        result = []
-        counter = 1
-        for p in sorted(postings, key=lambda posting: posting.tfidf, reverse=True):  # Shows search results sorted by highest tfidf
-            if counter > 5:  # Show the first 10 search results only
-                break
-            result.append(self.documents[p.docID])
-            counter += 1
+    def get_top_results(self, docIDs):
+        """Gets a list of docIDs as parameter and displays the top five them in order"""
+        THRESHOLD = 5 # Max number of results to show
+        result = list()
+        for i in range(THRESHOLD):
+            result.append(self.documents[docIDs[i]])
         return result
-
+    
 
     def run(self):
         """The search engine starts running and asks the user to enter queries"""
