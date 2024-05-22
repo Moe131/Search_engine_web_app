@@ -99,9 +99,7 @@ class Engine(object):
         elif len(query_words) >= 2:
             postings = list()
             for q in query_words:
-                if q not in self.index_of_index:
-                    return list()
-                else:
+                if q in self.index_of_index:
                     postings.append(self.find_postings(q, self.index_of_index[q]))
             search_result = self.find_intersection(postings)
         return search_result
@@ -139,9 +137,13 @@ class Engine(object):
                     break
         
             if in_all:
-                result.append(Posting(posting.docID, tfidf_sum))
-        
-        return result
+                result.append(Posting(posting.docID, tfidf_sum/len(postings_list)))
+
+        # If the intersection of all words in the query does not have a result, ignore the last word of query and find the intersection again
+        if len(result) == 0:
+            return self.find_intersection(postings_list[:len(postings_list)-1])
+        else:
+            return result
 
 
     def get_top_five(self, postings):
