@@ -97,7 +97,7 @@ class Engine(object):
 
         # If searched query is two words or more
         elif len(query_words) >= 2:
-            all_postings = list()
+            top_postings = list()
             query_idf = {}
             query_posting = {}
             for q in query_words:
@@ -109,8 +109,8 @@ class Engine(object):
 
             # Find top 3 words of the query based on idf and find intersection of them 
             for q, idf in sorted(query_idf.items(), key=lambda x:x[1], reverse=True)[:3]:
-                all_postings.append(query_posting[q])
-            search_result = self.find_intersection(all_postings)
+                top_postings.append(query_posting[q])
+            search_result = self.find_intersection(top_postings)
 
         return search_result
 
@@ -119,7 +119,7 @@ class Engine(object):
         """Finds the intersection of a list of postings by joining them and returning the list of postings that are present in all"""
         # Find and use the shortest list for intersection
         shortest_list = min(postings_list, key=len)
-        other_lists = [p for p in postings_list if p is not shortest_list]
+        other_lists = sorted([p for p in postings_list if p != shortest_list], key= len)
         result = []
         iterators = [iter(pl) for pl in other_lists]
     
@@ -163,6 +163,7 @@ class Engine(object):
             result.append(self.documents[p.docID])
             counter += 1
         return result
+
 
     def run(self):
         """The search engine starts running and asks the user to enter queries"""
