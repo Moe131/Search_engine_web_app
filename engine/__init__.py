@@ -2,7 +2,7 @@ from engine.posting import Posting
 from engine.tokenizer import remove_stop_words
 from engine.indexer import Indexer
 from porter2stemmer import Porter2Stemmer
-import json, sys
+import json, sys, math
 
 inverted_index_path = "data/inverted_index.txt"
 index_of_index_path = "data/indexOfIndex.json"
@@ -97,26 +97,35 @@ class Engine(object):
 
         # If searched query is two words or more
         elif len(query_words) >= 2:
-            postings = list()
+            all_postings = list()
+            query_idf = {}
+            query_posting = {}
             for q in query_words:
                 if q in self.index_of_index:
-                    postings.append(self.find_postings(q, self.index_of_index[q]))
-            search_result = self.find_intersection(postings)
+                    q_postings = self.find_postings(q, self.index_of_index[q])
+                    # Saving the idf of this query word
+                    query_idf[q] = idf = math.log10(len(self.documents)/len(q_postings))
+                    query_posting[q] = q_postings
+
+            # Find top 3 words of the query based on idf and find intersection of them 
+            for q, idf in sorted(query_idf.items(), key=lambda x:x[1], reverse=True)[:3]:
+                all_postings.append(query_posting[q])
+            search_result = self.find_intersection(all_postings)
+
         return search_result
+
 
     def find_intersection(self, postings_list):
         """Finds the intersection of a list of postings by joining them and returning the list of postings that are present in all"""
         # Find and use the shortest list for intersection
         shortest_list = min(postings_list, key=len)
         other_lists = [p for p in postings_list if p is not shortest_list]
-
         result = []
         iterators = [iter(pl) for pl in other_lists]
     
         for posting in shortest_list:
             current_docID = posting.docID
             tfidf_sum = posting.tfidf  # Initialize with the tfidf from the shortest list
-
         # Check if the current document ID exists in all other posting lists
             in_all = True
             for i, iterator in enumerate(iterators):
@@ -132,15 +141,13 @@ class Engine(object):
                     except StopIteration:
                         in_all = False
                         break
-            
                 if not in_all:
                     break
-        
             if in_all:
                 result.append(Posting(posting.docID, tfidf_sum/len(postings_list)))
-
-        # If the intersection of all words in the query does not have a result, ignore the last word of query and find the intersection again
-        if len(result) == 0:
+        # If the intersection of all words in the query does not have enough results, find the intersection with the last query word removed
+        THRESHOLD = 5
+        if len(result) < THRESHOLD: 
             return self.find_intersection(postings_list[:len(postings_list)-1])
         else:
             return result
