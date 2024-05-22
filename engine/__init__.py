@@ -73,6 +73,13 @@ class Engine(object):
         else:
             return list()
 
+    def record_query(self, query):
+        """ Records a query and the number of times it has been searched in a dictionary for caching """
+        for token in query:
+            if token in query_freq:
+                query_freq[token] += 1
+            else:
+                query_freq[token] = 1
 
     def process(self, query):
         """Processes the query by using the inverted index and returns a list of URLs in order of relevance to the query"""
@@ -80,50 +87,50 @@ class Engine(object):
         search_result = list()
         stemmer = Porter2Stemmer()
         query = remove_stop_words(query)
-        query_words = [stemmer.stem(q.lower()) for q in query.split()]
-
+        query = [stemmer.stem(q.lower()) for q in query.split()]
         # Keep track of query words' frequencies
-        for token in query_words:
-            if token in query_freq:
-                query_freq[token] += 1
-            else:
-                query_freq[token] = 1
-        
+        self.record_query(query)
+
+        words_idfs = {}
+        words_postings = {}
+        for word in query:
+            if word in self.index_of_index:
+                postings = self.find_postings(word, self.index_of_index[word])
+                # Saving the idf of this query word
+                words_idfs[word] = idf = math.log10(len(self.documents)/len(postings))
+                words_postings[word] = postings
         # Sorts the search results by their cosine similarity score to query
-        search_result = sorted(self.calculate_cosine_similarity(query_words).items(), key=lambda x:x[1], reverse=True)
+        search_result = sorted(self.calculate_cosine_similarity(query, words_idfs ,words_postings).items(), key=lambda x:x[1], reverse=True)
         search_result = [res[0] for res in search_result]
         return search_result
 
 
-    def calculate_cosine_similarity(self, query):
-        """ Calculates cosine similairty score for a query and all the documents containing the query words 
+    def calculate_cosine_similarity(self, query, words_idfs ,words_postings):
+        """ Calculates cosine similairty score for a query and all the postings containing the query words 
         and returns a dictionary of document IDs and their similarity scores"""
         scores = {}
         length = {}
-        query_idfs = []
         for word in query:
             if word in self.index_of_index:
-                    word_postings = self.find_postings(word, self.index_of_index[word])
-                    # Saving the idf of this query word
-                    idf = math.log10(len(self.documents)/len(word_postings))
-                    query_idfs.append(idf)
-                    for p in word_postings:
+                    postings = words_postings[word]
+                    idf = words_idfs[word]
+                    for p in postings:
                         weight = idf * p.tfidf
                         if p.docID in scores:
                             scores[p.docID] += weight
                         else:
                             scores[p.docID] = weight
+
                         if p.docID in length:
                             length[p.docID] += p.tfidf*p.tfidf 
                         else:
                             length[p.docID] = p.tfidf*p.tfidf
     
-        query_length = math.sqrt(sum(idf * idf for idf in query_idfs))
+        query_length = math.sqrt(sum(idf * idf for idf in words_idfs.values()))
 
         for doc,score in scores.items():
             scores[doc] = scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
         return scores
-
 
 
     def find_intersection(self, postings_list):
