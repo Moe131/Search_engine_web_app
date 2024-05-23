@@ -47,12 +47,13 @@ class Indexer(object):
                 else:
                     self.inverted_index[token] = [Posting(url_id, freq)]
 
+        
+        title = get_title(soup, url)
         try:
             # Summarize the content using OpenAI and saves it in a file along with the title of documents
-            title = soup.title.string if soup.title else data['url']
             self.doc_summaries [url_id] = title + " : " + summarize(remove_extra_spaces(content[:3000])[:1500]) #only the first 5000 character
         except:
-            self.doc_summaries [url_id] = title + " :"  # If could not be summaries just use the title
+            self.doc_summaries [url_id] = title + " : " + get_first_paragraph(soup)
 
 
     def save_doc_summaries(self, path):
@@ -115,6 +116,7 @@ class Indexer(object):
                     directory_counter = 0
                     partial_index_count += 1
                 self.index(f"{root}/{f}")
+                self.save_doc_summaries(doc_summaries_path)
             directory_counter += 1
             print(f"Directory {root} successfully indexed.")
         # create the last partition
@@ -178,3 +180,25 @@ class Indexer(object):
         print(f"--- Documents Summary file saved. ---")
         #self.create_report("report.txt")
 
+
+def get_title(soup, url):
+    """ Excracts the title of pages from content parsed by beautifulsoup"""
+    title = soup.title.string if soup.title else None
+    h1 = None
+    if not title:
+        h1 = soup.find('h1')
+    if h1:
+        title = h1.get_text(strip=True)
+    else:
+        title = url
+    return title
+
+def get_first_paragraph(soup):
+    """ Return the 500 chacaters of the first paragraph"""
+    first_paragraph = soup.find('p')
+    if first_paragraph:
+        # Get the text content of the first <p> element
+        paragraph_text = first_paragraph.get_text()
+        return paragraph_text[:500]
+    else:
+        return ""
