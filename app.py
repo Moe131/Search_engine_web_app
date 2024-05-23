@@ -29,20 +29,20 @@ def index():
             return redirect('/')
         start = time.time()
         postings = engine.process(query)
+        end = time.time()         # Calculate the query time
         search_results = engine.get_top_results(postings)
         has_searched = True
-        # Calculate the query time
-        end = time.time()
+
         query_time = int((end - start)*1000)
-        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query, query_time = query_time )
+        return render_template('index.html', search_results = search_results, has_searched=has_searched, query=query, query_time = query_time )
     
     # If the request method is GET (initial page load) Do not show search result
     elif request.method == "GET":
         has_searched = False
-        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query , query_time = query_time )
+        return render_template('index.html', search_results = search_results, has_searched=has_searched, query=query , query_time = query_time )
     
     else:
-        return render_template('index.html', urls = search_results, has_searched=has_searched, query=query , query_time = query_time)
+        return render_template('index.html', search_results = search_results, has_searched=has_searched, query=query , query_time = query_time)
 
 
 if __name__ == "__main__":

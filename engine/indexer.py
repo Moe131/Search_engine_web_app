@@ -115,7 +115,6 @@ class Indexer(object):
                     directory_counter = 0
                     partial_index_count += 1
                 self.index(f"{root}/{f}")
-                self.save_doc_summaries(doc_summaries_path)
             directory_counter += 1
             print(f"Directory {root} successfully indexed.")
         # create the last partition

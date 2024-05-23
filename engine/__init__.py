@@ -7,6 +7,7 @@ import json, sys, math
 inverted_index_path = "data/inverted_index.txt"
 index_of_index_path = "data/indexOfIndex.json"
 document_ids_path = "data/documentIDs.json"
+doc_summaries_path = "data/docSummaries.json"
 query_freq = {} # Keeps track of how many times a query token has been searched
 cache = {} 
 
@@ -15,6 +16,7 @@ class Engine(object):
     def __init__(self):
         self.inverted_index_file = None  # Dictionary of tokens and their postings
         self.documents = {}  # Dictionary of URL and their IDs
+        self.doc_summaries = {}  # Dictionary of doc IDs and their title and summaries
         self.index_of_index = {}
         self.load_files()
         self.open_inverted_index()
@@ -49,6 +51,10 @@ class Engine(object):
             with open(document_ids_path, "r") as f2:
                 for key, value in json.load(f2).items():
                     self.documents[int(key)] = value
+            with open(doc_summaries_path, "r") as f2:
+                for key, value in json.load(f2).items():
+                    self.doc_summaries[int(key)] = value
+
         except FileNotFoundError:
             # If the file doesn't exist
             self.documents = {}
@@ -174,14 +180,22 @@ class Engine(object):
     def get_top_results(self, docIDs):
         """Gets a list of docIDs as parameter and displays the top five them in order"""
         THRESHOLD = 5 # Max number of results to show
-        result = list()
+        result = list() # list of url, title and summary for each postings 
         for i in range(len(docIDs)):
             if i >= THRESHOLD:
                 break
-            result.append(self.documents[docIDs[i]])
+
+            result.append(list())
+            url = self.documents[docIDs[i]]
+            title = self.doc_summaries[docIDs[i]].rsplit(":",1)[0] if docIDs[i] in self.doc_summaries else "No Title"
+            summary = self.doc_summaries[docIDs[i]].rsplit(":",1)[1] if docIDs[i] in self.doc_summaries else ""
+            result[i].append(url) # url
+            result[i].append(title) # title
+            result[i].append(summary) # summary
+            
         return result
     
-
+    
     def run(self):
         """The search engine starts running and asks the user to enter queries"""
         while True:

@@ -18,13 +18,15 @@
         {% if has_searched %}
         <div class="result-box">
 
-            {% if urls|length > 0%} 
+            {% if search_results|length > 0%} 
                 <h4 class="result-text"> Here are your search results : </h4>
                 <h5 class="result-text"> Query Time : {{ query_time }} ms </h5>
-            {%for url in urls %}
-                <h4><a class="result-text" href="{{url}}"> {{url}}</a></h4>
-            {%endfor %}
-
+                {%for search_result in search_results %}
+                <h4 class="result-title"><a href="{{search_result[0]}}"> {{search_result[1]}}</a></h4>
+                <p class="smaller"> {{search_result[0]}}</p>
+                <p class="smaller">{{search_result[2]}}</p>
+                <br><br>
+                {%endfor %}
             {%else%}
                  <h4 class="error-message"> No Search Results Found </h4>
             {%endif%}
