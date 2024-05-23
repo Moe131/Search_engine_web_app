@@ -175,7 +175,9 @@ class Engine(object):
         """Gets a list of docIDs as parameter and displays the top five them in order"""
         THRESHOLD = 5 # Max number of results to show
         result = list()
-        for i in range(THRESHOLD):
+        for i in range(len(docIDs)):
+            if i >= THRESHOLD:
+                break
             result.append(self.documents[docIDs[i]])
         return result
     
