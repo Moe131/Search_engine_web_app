@@ -1,12 +1,13 @@
 import json, os
 from engine.tokenizer import tokenize
+from engine.summarizer import summarize, remove_extra_spaces
 from engine.posting import Posting
-from porter2stemmer import Porter2Stemmer
 from bs4 import BeautifulSoup 
 
 inverted_index_path = "data/inverted_index.txt"
 index_of_index_path = "data/indexOfIndex.json"
 document_ids_path = "data/documentIDs.json"
+doc_summaries_path = "data/docSummaries.json"
 
 class Indexer(object):
     """Represents the indexer for the search engine."""
@@ -17,6 +18,7 @@ class Indexer(object):
         self.counter = 0  # Counts from zero for URL ids
         self.partions_paths = list()
         self.directory = directory # Directory containing the crawled pages
+        self.doc_summaries = {} # mapping of document ID to (tilte +  summary)
 
 
     def index(self, file):
@@ -45,6 +47,18 @@ class Indexer(object):
                 else:
                     self.inverted_index[token] = [Posting(url_id, freq)]
 
+        try:
+            # Summarize the content using OpenAI and saves it in a file along with the title of documents
+            title = soup.title.string if soup.title else data['url']
+            self.doc_summaries [url_id] = title + " : " + summarize(remove_extra_spaces(content[:3000])[:1500]) #only the first 5000 character
+        except:
+            self.doc_summaries [url_id] = title + " :"  # If could not be summaries just use the title
+
+
+    def save_doc_summaries(self, path):
+        """ Saves the mapping of document ID and their summaries in a file"""
+        with open(path, "w") as f:
+            json.dump(self.doc_summaries, f)
 
     def create_report(self, path):
         """Creates a report of the inverted index in a text file"""
@@ -101,6 +115,7 @@ class Indexer(object):
                     directory_counter = 0
                     partial_index_count += 1
                 self.index(f"{root}/{f}")
+                self.save_doc_summaries(doc_summaries_path)
             directory_counter += 1
             print(f"Directory {root} successfully indexed.")
         # create the last partition
@@ -155,8 +170,12 @@ class Indexer(object):
             os.makedirs("data") 
         self.make_index_partitions()
         self.merge_all_partitions("data/index_p1.txt","data/index_p2.txt" ,"data/index_p3.txt",inverted_index_path)
-        self.save_documentIDs(document_ids_path)
-        self.make_index_of_index(index_of_index_path)
-        #self.create_report("report.txt")
         print(f"--- All files were indexed. ---")
+        self.save_documentIDs(document_ids_path)
+        print(f"--- DocumentIDs file saved. ---")
+        self.make_index_of_index(index_of_index_path)
+        print(f"--- Index of Index file saved. ---")
+        self.save_doc_summaries(doc_summaries_path)
+        print(f"--- Documents Summary file saved. ---")
+        #self.create_report("report.txt")
 
