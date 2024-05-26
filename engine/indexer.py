@@ -1,6 +1,7 @@
-import json, os
+import json, os , re
 from engine.tokenizer import tokenize
 from engine.summarizer import summarize, remove_extra_spaces
+from engine.simhash import *
 from engine.posting import Posting
 from bs4 import BeautifulSoup 
 
@@ -19,6 +20,7 @@ class Indexer(object):
         self.partions_paths = list()
         self.directory = directory # Directory containing the crawled pages
         self.doc_summaries = {} # mapping of document ID to (tilte +  summary)
+        self.sim_hashes = set()  # sim hashes of content to detect exact/near duplicate
 
 
     def index(self, file):
@@ -30,30 +32,53 @@ class Indexer(object):
             # Load the json file into data
             data = json.load(f)
 
+            # Read the content of file
+            soup = BeautifulSoup(data['content'], "lxml")
+            content = soup.get_text(separator=" ", strip=True) # Extract the text text = body.get_text()
+            content_tokens = tokenize(content)
+
+            # tokens in the tilte, h1 , or bold headers
+            title_tokens,h1_tokens,bold_tokens = find_title_h1_bold(soup)
+
+            # Check if its exact or near duplicate do not index if it is
+            if self.is_duplicate(content_tokens):
+                return
+
             # Save the URL id
             url = data['url']
             self.documents[self.counter] = url
             url_id = self.counter
             self.counter += 1
 
-            # Read the content of file
-            soup = BeautifulSoup(data['content'], "lxml")
-            content = soup.getText()
-
             # Tokenize the content and add them to inverted index dictionary
-            for token, freq in tokenize(content).items():
+            for token, freq in content_tokens.items():
+                fields = create_field(title_tokens, h1_tokens, bold_tokens, token) # Checks if token was in title, h1 or strong tags
                 if token in self.inverted_index:
-                    self.inverted_index[token].append(Posting(url_id, freq))
+                    self.inverted_index[token].append(Posting(url_id, freq, fields))
                 else:
-                    self.inverted_index[token] = [Posting(url_id, freq)]
+                    self.inverted_index[token] = [Posting(url_id, freq, fields)]
 
-        
-        title = get_title(soup, url)
-        try:
+            title = get_title(soup, url)
+            try:
             # Summarize the content using OpenAI and saves it in a file along with the title of documents
-            self.doc_summaries [url_id] = title + " : " + summarize(remove_extra_spaces(content[:3000])[:1500]) #only the first 5000 character
-        except:
-            self.doc_summaries [url_id] = title + " : " + get_first_paragraph(soup)
+                self.doc_summaries[url_id] = title + " : " + content.replace(":", " ")[:100] #only the first 5000 character
+            except:
+                self.doc_summaries[url_id] = title + " : " 
+            
+
+    def is_duplicate(self,content):
+        """ Checks if the conent is exact or near duplicate of already scraped websites. """
+        # store the hash and check if its exat duplicate
+        simhash = simHash(content)
+        if simhash in self.sim_hashes: # exact dupliacte
+            return True
+    
+        for sh in self.sim_hashes:
+            if are_near_duplicate(sh, simhash):
+                return True
+        # store the hash if its not already stored
+        self.sim_hashes.add(simhash)
+        return False
 
 
     def save_doc_summaries(self, path):
@@ -108,6 +133,7 @@ class Indexer(object):
         directory_counter = 0
         partial_index_count = 1
         for (root, dirs, files) in os.walk(self.directory):
+            print(f"Now indexing {root}.")
             for f in files:
                 # If limit exceeded for number of files indexed 
                 if directory_counter > limit:
@@ -116,7 +142,7 @@ class Indexer(object):
                     directory_counter = 0
                     partial_index_count += 1
                 self.index(f"{root}/{f}")
-                self.save_doc_summaries(doc_summaries_path)
+                #self.save_doc_summaries(doc_summaries_path) # remove later
             directory_counter += 1
             print(f"Directory {root} successfully indexed.")
         # create the last partition
@@ -181,24 +207,46 @@ class Indexer(object):
         #self.create_report("report.txt")
 
 
+# HELPER METHODS
+
 def get_title(soup, url):
     """ Excracts the title of pages from content parsed by beautifulsoup"""
-    title = soup.title.string if soup.title else None
-    h1 = None
+    title_tag = soup.find('title')
+    title = title_tag.get_text(separator=" ", strip=True) if title_tag else None
     if not title:
-        h1 = soup.find('h1')
-    if h1:
-        title = h1.get_text(strip=True)
-    else:
-        title = url
+        h1_tag = soup.find('h1')
+        title = h1_tag.get_text() if h1_tag else url
     return title
 
-def get_first_paragraph(soup):
-    """ Return the 500 chacaters of the first paragraph"""
-    first_paragraph = soup.find('p')
-    if first_paragraph:
-        # Get the text content of the first <p> element
-        paragraph_text = first_paragraph.get_text()
-        return paragraph_text[:500]
-    else:
-        return ""
+
+def create_field(title_tokens, h1_tokens, bold_tokens, token):
+    """ Finds if a token has appeared in the following fields of a page :
+    <title> , <h1> , <strong>""" 
+    # creating a list of all common heading tags
+    result = ""
+    if token in title_tokens:
+        result += "title "
+    if token in h1_tokens:
+        result += "h1 "
+    if token in bold_tokens:
+            result += "bold "
+    return result
+
+def find_title_h1_bold(soup):
+    """ Find the token in title, h1 and bold tags by iterating through the soup content"""
+    title_text = ""
+    h1_text = ""
+    bold_text = ""  
+    for tag in soup.find_all(["title", "h1", "strong", "b"]):
+        tag_name = tag.name
+        tag_text = tag.get_text()
+        if tag_name == "title":
+            title_text = tag_text
+        elif tag_name == "h1":
+            h1_text += tag_text + " "
+        elif tag_name in ["strong", "b"]:
+            bold_text += tag_text + " "
+    title_tokens = tokenize(title_text)
+    h1_tokens = tokenize(h1_text)
+    bold_tokens = tokenize(bold_text)
+    return title_tokens, h1_tokens, bold_tokens

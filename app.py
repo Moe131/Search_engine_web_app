@@ -7,7 +7,6 @@ import sys
 JSON_FILES_PATH = "/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV"
 #/Users/mohammadmirzaei/Documents/UCI/Spring24/CS121/Assignmet3(private)/DEV
 
-
 app = Flask(__name__)
 engine = Engine()
 query = ""       # Search query
