@@ -59,6 +59,7 @@ class Engine(object):
             # If the file doesn't exist
             self.documents = {}
             self.index_of_index = {}
+            self.doc_summaries = {}
 
 
     def find_postings(self, token ,lineNumber):
@@ -66,7 +67,6 @@ class Engine(object):
         # first check if token and its postings are in cache
         if token in cache:
             return cache[token]
-        
         # if token is not in cache look into the inverted index file
         self.inverted_index_file.seek(lineNumber)
         parts = self.inverted_index_file.readline().split(' ',1)
@@ -97,42 +97,95 @@ class Engine(object):
         # Keep track of query words' frequencies
         self.record_query(query)
 
-        words_idfs = {}
-        words_postings = {}
+        query_idfs = {}
+        query_postings = {}
         for word in query:
             if word in self.index_of_index:
                 postings = self.find_postings(word, self.index_of_index[word])
                 # Saving the idf of this query word
-                words_idfs[word] = idf = math.log10(len(self.documents)/len(postings))
-                words_postings[word] = postings
+                query_idfs[word] = idf = math.log10(len(self.documents)/len(postings))
+                query_postings[word] = postings
         # Sorts the search results by their cosine similarity score to query
-        search_result = sorted(self.calculate_cosine_similarity(query, words_idfs ,words_postings).items(), key=lambda x:x[1], reverse=True)
+        search_result = sorted(self.calculate_relevance_score(query, query_idfs ,query_postings).items(), key=lambda x:x[1], reverse=True)
         search_result = [res[0] for res in search_result]
         return search_result
+    
+
+    def calculate_relevance_score(self, query, query_idfs ,query_postings):
+        """ Computes the relevance score for a query and all given postings"""
+        field_scores = {}
+        cosine_score = {}
+        length = {}
+        for word in query:
+            if word in self.index_of_index:
+                postings = query_postings[word]
+                for p in postings:
+                    #calculating field score
+                    fields_score = self.calculate_fields_score(word, p)
+                    if p.docID in field_scores:
+                        field_scores[p.docID] += fields_score
+                    else:
+                        field_scores[p.docID] = fields_score
+                    
+                    #calculating cosine similarity
+                    weight = query_idfs[word] * p.tfidf
+                    if p.docID in cosine_score:
+                        cosine_score[p.docID] += weight
+                    else:
+                        cosine_score[p.docID] = weight
+                    if p.docID in length:
+                        length[p.docID] += p.tfidf*p.tfidf 
+                    else:
+                        length[p.docID] = p.tfidf*p.tfidf
+        
+        # completing cosine similarity calculation
+        query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
+        for doc,score in cosine_score.items():
+            cosine_score[doc] = cosine_score[doc] / ( query_length  *  math.sqrt(length[doc]) )
+
+        # calculating relevance score for all postings
+        relevance_scores = dict()
+        for doc,score in cosine_score.items():
+            relevance_scores[doc] = score + field_scores[doc]
+        return relevance_scores
+            
+
+    def calculate_fields_score(self, token , posting):
+        """ Calculates the score for postings by checking if the query token is in title, h1 or bolded tags"""
+        score = 0
+        fields = posting.fields.split()
+        if 'title' in fields:
+            score += 0.5
+        if 'h1' in fields:
+            score += 0.3
+        if 'bold' in fields:
+            score += 0.2
+        return score
+    
 
 
-    def calculate_cosine_similarity(self, query, words_idfs ,words_postings):
+    def calculate_cosine_similarity(self, query, query_idfs ,query_postings):
         """ Calculates cosine similairty score for a query and all the postings containing the query words 
         and returns a dictionary of document IDs and their similarity scores"""
         scores = {}
         length = {}
         for word in query:
             if word in self.index_of_index:
-                    postings = words_postings[word]
-                    idf = words_idfs[word]
-                    for p in postings:
-                        weight = idf * p.tfidf
-                        if p.docID in scores:
-                            scores[p.docID] += weight
-                        else:
+                postings = query_postings[word]
+                idf = query_idfs[word]
+                for p in postings:
+                    weight = idf * p.tfidf
+                    if p.docID in scores:
+                        scores[p.docID] += weight
+                    else:
                             scores[p.docID] = weight
 
-                        if p.docID in length:
-                            length[p.docID] += p.tfidf*p.tfidf 
-                        else:
-                            length[p.docID] = p.tfidf*p.tfidf
+                    if p.docID in length:
+                        length[p.docID] += p.tfidf*p.tfidf 
+                    else:
+                        length[p.docID] = p.tfidf*p.tfidf
     
-        query_length = math.sqrt(sum(idf * idf for idf in words_idfs.values()))
+        query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
 
         for doc,score in scores.items():
             scores[doc] = scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
