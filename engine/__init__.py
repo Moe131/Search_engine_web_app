@@ -115,14 +115,15 @@ class Engine(object):
         """ Computes the relevance score for a query and all given postings"""
         field_scores = {}
         cosine_scores = {}
-        position_scores = {}
+        proximity_scores = {}
+        positions = {}
         length = {}
         for word in query:
             if word in self.index_of_index:
                 postings = query_postings[word]
                 for p in postings:
                     #calculating field score
-                    fields_score = self.calculate_fields_score(word, p)
+                    fields_score = self.calculate_fields_score(p)
                     if p.docID in field_scores:
                         field_scores[p.docID] += fields_score
                     else:
@@ -138,20 +139,34 @@ class Engine(object):
                         length[p.docID] += p.tfidf*p.tfidf 
                     else:
                         length[p.docID] = p.tfidf*p.tfidf
-        
-        # completing cosine similarity calculation
+                    
+                    # store the positioning of tokens
+                    if len(p.positions) == 0:
+                        continue
+                    if p.docID in positions:
+                        positions[p.docID][word] = p.positions
+                    else:
+                        positions[p.docID] = dict()
+                        positions[p.docID][word] = p.positions
+
+        # calculate positioning score
+        for docID in positions:
+            if len(positions[docID]) > 1:
+                proximity_scores[docID] = self.calculate_proximity_score(query, positions[docID])
+            else:
+                proximity_scores[docID]  = 0
+
+        # completing cosine similarity calculation and calculating the relevance score
+        relevance_scores = dict()
         query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
         for doc,score in cosine_scores.items():
             cosine_scores[doc] = cosine_scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
-
-        # calculating relevance score for all postings
-        relevance_scores = dict()
-        for doc in cosine_scores:
-            relevance_scores[doc] = cosine_scores[doc] + field_scores[doc]
+            # Relevacne score for each document
+            relevance_scores[doc] = cosine_scores[doc] + field_scores[doc] + proximity_scores[doc]
         return relevance_scores
             
 
-    def calculate_fields_score(self, token , posting):
+    def calculate_fields_score(self , posting):
         """ Calculates the score for postings by checking if the query token is in title, h1 or bolded tags"""
         score = 0
         fields = posting.fields.split()
@@ -164,6 +179,21 @@ class Engine(object):
         return score
     
 
+    def calculate_proximity_score(self, query, token_positions):
+        """ Calculates the proximity score of a documents given the positions of query tokens in that document """
+        score = 0
+        proximity = len(query) + 1
+        first_token = next(iter(token_positions))
+        first_positions = set(token_positions[first_token])
+        del token_positions[first_token]
+        # check for proximity for positioning of each tokens
+        for token, positions in token_positions.items():
+            for pos in positions:
+                # Check proximity around each position
+                if any(abs(pos - t) < proximity for t in first_positions):
+                    score += 1 / ( len(positions) * proximity )
+        return score
+    
 
     def calculate_cosine_similarity(self, query, query_idfs ,query_postings):
         """ Calculates cosine similairty score for a query and all the postings containing the query words 
