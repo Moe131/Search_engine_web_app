@@ -105,6 +105,7 @@ class Engine(object):
                 # Saving the idf of this query word
                 query_idfs[word] = idf = math.log10(len(self.documents)/len(postings))
                 query_postings[word] = postings
+        
         # Sorts the search results by their cosine similarity score to query
         search_result = sorted(self.calculate_relevance_score(query, query_idfs ,query_postings).items(), key=lambda x:x[1], reverse=True)
         search_result = [res[0] for res in search_result]
@@ -149,20 +150,21 @@ class Engine(object):
                         positions[p.docID] = dict()
                         positions[p.docID][word] = p.positions
 
-        # calculate positioning score
-        for docID in positions:
-            if len(positions[docID]) > 1:
-                proximity_scores[docID] = self.calculate_proximity_score(query, positions[docID])
-            else:
-                proximity_scores[docID]  = 0
-
-        # completing cosine similarity calculation and calculating the relevance score
         relevance_scores = dict()
         query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
-        for doc,score in cosine_scores.items():
-            cosine_scores[doc] = cosine_scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
+        # Completing the calculation of cosine similarity score
+        for docID,score in cosine_scores.items():
+            cosine_scores[docID] = cosine_scores[docID] / ( query_length  *  math.sqrt(length[docID]) )
+        
+        # Only keeping the top K documents with highest cosine similarity and field scores for calculation of relevance score
+        K = 100
+        cosine_scores = dict(sorted(cosine_scores.items(), key=lambda x: field_scores[x[0]] + x[1], reverse=True)[:K])
+
+        for docID,score in cosine_scores.items():
+            # Calculate proximity score
+            proximity_scores[docID] = self.calculate_proximity_score(query, positions[docID]) if len(positions[docID]) > 1 else 0
             # Relevacne score for each document
-            relevance_scores[doc] = cosine_scores[doc] + field_scores[doc] + proximity_scores[doc]
+            relevance_scores[docID] = cosine_scores[docID] + field_scores[docID] + proximity_scores[docID]
         return relevance_scores
             
 
@@ -224,11 +226,11 @@ class Engine(object):
 
 
     def find_intersection(self, postings_list):
-        """Finds the intersection of a list of postings by joining them and returning the list of postings that are present in all"""
+        """Finds the intersection of a list of postings by joining them and returning a set of posting IDs that are present in all"""
         # Find and use the shortest list for intersection
         shortest_list = min(postings_list, key=len)
         other_lists = sorted([p for p in postings_list if p != shortest_list], key= len)
-        result = []
+        result = set()
         iterators = [iter(pl) for pl in other_lists]
     
         for posting in shortest_list:
@@ -252,13 +254,9 @@ class Engine(object):
                 if not in_all:
                     break
             if in_all:
-                result.append(Posting(posting.docID, tfidf_sum/len(postings_list)))
-        # If the intersection of all words in the query does not have enough results, find the intersection with the last query word removed
-        THRESHOLD = 5
-        if len(result) < THRESHOLD: 
-            return self.find_intersection(postings_list[:len(postings_list)-1])
-        else:
-            return result
+                result.add(posting.docID)
+
+        return result
 
 
     def get_top_results(self, docIDs):
@@ -268,7 +266,6 @@ class Engine(object):
         for i in range(len(docIDs)):
             if i >= THRESHOLD:
                 break
-
             result.append(list())
             url = self.documents[docIDs[i]]
             title = self.doc_summaries[docIDs[i]].rsplit(":",1)[0] if docIDs[i] in self.doc_summaries else "No Title"
@@ -276,7 +273,6 @@ class Engine(object):
             result[i].append(url) # url
             result[i].append(title) # title
             result[i].append(summary) # summary
-            
         return result
     
     
