@@ -16,22 +16,32 @@ def isAlphaNum(ch:str) -> bool:
 # Time complexity of this method is linear  O(n). The method iterates through 
 # the characters(bytes) one by one.
 def tokenize(text: str) -> dict:
-	''' reads in a text and returns a list of the tokens in that string '''
+	''' reads in a text and returns two dictionaries: first,
+	 1:  token -> frequency , 2: token -> list of positions '''
 	tokens = dict()
+	positions = dict()
 	token = ""
+	pos = 1 # keeps track of the position of the token
 	for ch in text + " ":
 		if isAlphaNum(ch):
 			token += ch
 		else:
 			if token != "":
 				if  len(token) > 1 :
-					word = stemmer.stem(token.lower())
-					if word in tokens.keys():
-						tokens[word] += 1
+					stemed_token = stemmer.stem(token.lower())
+					# Update the frequency of the token
+					if stemed_token in tokens.keys():
+						tokens[stemed_token] += 1
 					else:
-						tokens[word] = 1
-				token = "" 
-	return tokens
+						tokens[stemed_token] = 1
+					# Update the positions of the token
+					if stemed_token in positions.keys():
+						positions[stemed_token].append(pos)
+					else:
+						positions[stemed_token] = [pos]
+					pos += 1
+				token = ""
+	return tokens, positions
 
 stopwords = {'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 
              'are', "aren't", 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 

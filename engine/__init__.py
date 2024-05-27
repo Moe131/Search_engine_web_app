@@ -115,6 +115,7 @@ class Engine(object):
         """ Computes the relevance score for a query and all given postings"""
         field_scores = {}
         cosine_scores = {}
+        position_scores = {}
         length = {}
         for word in query:
             if word in self.index_of_index:

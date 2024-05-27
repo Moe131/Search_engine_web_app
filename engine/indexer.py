@@ -35,7 +35,7 @@ class Indexer(object):
             # Read the content of file
             soup = BeautifulSoup(data['content'], "lxml")
             content = soup.get_text(separator=" ", strip=True) # Extract the text text = body.get_text()
-            content_tokens = tokenize(content)
+            content_tokens , token_positions = tokenize(content)
 
             # tokens in the tilte, h1 , or bold headers
             title_tokens,h1_tokens,bold_tokens = find_title_h1_bold(soup)
@@ -53,10 +53,11 @@ class Indexer(object):
             # Tokenize the content and add them to inverted index dictionary
             for token, freq in content_tokens.items():
                 fields = create_field(title_tokens, h1_tokens, bold_tokens, token) # Checks if token was in title, h1 or strong tags
+                position = token_positions[token] # list of the positions that token appeared in text
                 if token in self.inverted_index:
-                    self.inverted_index[token].append(Posting(url_id, freq, fields))
+                    self.inverted_index[token].append(Posting(url_id, freq, fields, position))
                 else:
-                    self.inverted_index[token] = [Posting(url_id, freq, fields)]
+                    self.inverted_index[token] = [Posting(url_id, freq, fields, position)]
 
             title = get_title(soup, url)
             try:
@@ -246,7 +247,7 @@ def find_title_h1_bold(soup):
             h1_text += tag_text + " "
         elif tag_name in ["strong", "b"]:
             bold_text += tag_text + " "
-    title_tokens = tokenize(title_text)
-    h1_tokens = tokenize(h1_text)
-    bold_tokens = tokenize(bold_text)
+    title_tokens, positions = tokenize(title_text)
+    h1_tokens, positions = tokenize(h1_text)
+    bold_tokens, positions = tokenize(bold_text)
     return title_tokens, h1_tokens, bold_tokens
