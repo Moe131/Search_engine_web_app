@@ -114,7 +114,7 @@ class Engine(object):
     def calculate_relevance_score(self, query, query_idfs ,query_postings):
         """ Computes the relevance score for a query and all given postings"""
         field_scores = {}
-        cosine_score = {}
+        cosine_scores = {}
         length = {}
         for word in query:
             if word in self.index_of_index:
@@ -129,10 +129,10 @@ class Engine(object):
                     
                     #calculating cosine similarity
                     weight = query_idfs[word] * p.tfidf
-                    if p.docID in cosine_score:
-                        cosine_score[p.docID] += weight
+                    if p.docID in cosine_scores:
+                        cosine_scores[p.docID] += weight
                     else:
-                        cosine_score[p.docID] = weight
+                        cosine_scores[p.docID] = weight
                     if p.docID in length:
                         length[p.docID] += p.tfidf*p.tfidf 
                     else:
@@ -140,13 +140,13 @@ class Engine(object):
         
         # completing cosine similarity calculation
         query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
-        for doc,score in cosine_score.items():
-            cosine_score[doc] = cosine_score[doc] / ( query_length  *  math.sqrt(length[doc]) )
+        for doc,score in cosine_scores.items():
+            cosine_scores[doc] = cosine_scores[doc] / ( query_length  *  math.sqrt(length[doc]) )
 
         # calculating relevance score for all postings
         relevance_scores = dict()
-        for doc,score in cosine_score.items():
-            relevance_scores[doc] = score + field_scores[doc]
+        for doc in cosine_scores:
+            relevance_scores[doc] = cosine_scores[doc] + field_scores[doc]
         return relevance_scores
             
 
