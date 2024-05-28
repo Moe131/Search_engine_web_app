@@ -114,6 +114,11 @@ class Engine(object):
 
     def calculate_relevance_score(self, query, query_idfs ,query_postings):
         """ Computes the relevance score for a query and all given postings"""
+        # Coefficients for relevance score
+        ALPHA = 1 # cosine similarity
+        GAMA = 1 # field of tokens
+        SIGMA = 1 # position of tokens
+
         field_scores = {}
         cosine_scores = {}
         proximity_scores = {}
@@ -153,9 +158,16 @@ class Engine(object):
         relevance_scores = dict()
         query_length = math.sqrt(sum(idf * idf for idf in query_idfs.values()))
         # Completing the calculation of cosine similarity score
+        score_sum = 0
+        counter = 50
         for docID,score in cosine_scores.items():
+            if counter < 50:
+                score_sum += score 
+                counter += 1
+            if counter > 50 and score < (score_sum / counter) : # if the cosine score if less than avg discard it - efficiency improvment
+                continue
             cosine_scores[docID] = cosine_scores[docID] / ( query_length  *  math.sqrt(length[docID]) )
-        
+            
         # Only keeping the top K documents with highest cosine similarity and field scores for calculation of relevance score
         K = 100
         cosine_scores = dict(sorted(cosine_scores.items(), key=lambda x: field_scores[x[0]] + x[1], reverse=True)[:K])
@@ -164,7 +176,7 @@ class Engine(object):
             # Calculate proximity score
             proximity_scores[docID] = self.calculate_proximity_score(query, positions[docID]) if len(positions[docID]) > 1 else 0
             # Relevacne score for each document
-            relevance_scores[docID] = cosine_scores[docID] + field_scores[docID] + proximity_scores[docID]
+            relevance_scores[docID] = ALPHA * cosine_scores[docID] + GAMA * field_scores[docID] + SIGMA * proximity_scores[docID]
         return relevance_scores
             
 
@@ -175,7 +187,7 @@ class Engine(object):
         if 'title' in fields:
             score += 0.5
         if 'h1' in fields:
-            score += 0.3
+            score += 0.25
         if 'bold' in fields:
             score += 0.2
         return score
