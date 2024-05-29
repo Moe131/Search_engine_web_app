@@ -61,11 +61,11 @@ class Indexer(object):
 
             title = get_title(soup, url)
             try:
-            # Summarize the content using OpenAI and saves it in a file along with the title of documents
-                self.doc_summaries[url_id] = title + " : " + content.replace(":", " ")[:100] #only the first 5000 character
+            # Summarize the first 1200 character of content using OpenAI and saves it in a file along with the title of documents
+                self.doc_summaries[url_id] = title + " : " + summarize(content[:1200])
             except:
-                self.doc_summaries[url_id] = title + " : " 
-            
+                # if OpenAI could not summarize just used to first 100 characters of content
+                self.doc_summaries[url_id] = title + " : "  + content.replace(":", " ")[:100] 
 
     def is_duplicate(self,content):
         """ Checks if the conent is exact or near duplicate of already scraped websites. """
@@ -143,7 +143,7 @@ class Indexer(object):
                     directory_counter = 0
                     partial_index_count += 1
                 self.index(f"{root}/{f}")
-                #self.save_doc_summaries(doc_summaries_path) # remove later
+            self.save_doc_summaries(doc_summaries_path) # remove later
             directory_counter += 1
             print(f"Directory {root} successfully indexed.")
         # create the last partition
