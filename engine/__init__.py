@@ -116,8 +116,8 @@ class Engine(object):
         """ Computes the relevance score for a query and all given postings"""
         # Coefficients for relevance score
         ALPHA = 1 # cosine similarity
-        GAMA = 1 # field of tokens
-        SIGMA = 1 # position of tokens
+        GAMA = 2 # field of tokens
+        SIGMA = 1.5 # position of tokens
 
         field_scores = {}
         cosine_scores = {}
@@ -129,7 +129,7 @@ class Engine(object):
                 postings = query_postings[word]
                 for p in postings:
                     #calculating field score
-                    fields_score = self.calculate_fields_score(p)
+                    fields_score = self.calculate_fields_score(p) * query_idfs[word]
                     if p.docID in field_scores:
                         field_scores[p.docID] += fields_score
                     else:
