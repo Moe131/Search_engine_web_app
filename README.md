@@ -1,7 +1,17 @@
 # Search Engine Web Application
 
-This is a simple web application built using Flask for searching documents indexed by a search engine.
+This is a search engine web application built using Flask that allows searching over 56,000 websites.
 
+![Screen Shot 2024-06-04 at 17 37 17](https://github.com/Moe131/Search_engine_web_app/assets/65834335/149dae72-ce48-45da-9a30-044a88af5abd)
+
+
+## Features
+- Comprehensive Search: Search across a vast database of 56,000 University of California, Irvine webpages.
+- User-Friendly Interface: Intuitive and easy-to-use interface for efficient searching.
+- Fast and Reliable: Optimized for quick and accurate search results.
+- Document Indexing: Indexes documents and creates an inverted index for efficient search retrieval.
+- Summarized Results: Retrieves document summaries using the OpenAI API for quick content insights.
+  
 ## Installation
 
 1. Clone this repository to your local machine:
@@ -12,6 +22,8 @@ This is a simple web application built using Flask for searching documents index
 2. Install the required dependencies:
 ```
 pip install Flask
+
+pip install beautifulsoup4
 ```
 3. Create inverse index for the search engine : 
 ```
